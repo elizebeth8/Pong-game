@@ -25,86 +25,56 @@ const context = canvas.getContext('2d');
 const grid = 15;
 const paddleHeight = grid * 4; // 80
 const maxPaddleY = canvas.height - grid - paddleHeight;
-const maxRightBackY =  paddleHeight;
-const maxRightBackY2 =  canvas.height - paddleHeight; 
+const maxRightBackY = paddleHeight;
+const maxRightBackY2 = canvas.height - paddleHeight;
 
 var paddleSpeed = 6;
-var ballSpeed = 7;
+var ballSpeed = 3;
 
-const leftPaddle = {
-  // start in the middle of the game on the left side
-  x: grid * 2,
-  y: 0,
-  width: grid,
-  height: canvas.height,
+// Helper function to create paddle objects
+function createPaddle(x, y, width, height) {
+  return {
+    x: x,
+    y: y,
+    width: width,
+    height: height,
+    dy: 0
+  };
+}
 
-  // paddle velocity
-  dy: 0
-};
-const rightPaddle = {
-  // start in the middle of the game on the right side
-  x: canvas.width - grid * 3,
-  y: canvas.height / 2 - paddleHeight * 2,
-  width: grid,
-  height: paddleHeight,
+// Helper function to check boundaries
+function checkBoundaries(paddle, minY, maxY) {
+  if (paddle.y < minY) {
+    paddle.y = minY;
+  } else if (paddle.y > maxY) {
+    paddle.y = maxY;
+  }
+}
 
-  // paddle velocity
-  dy: 0
-};
-const rightPaddle2 = {
-  // start in the middle of the game on the right side
-  x: canvas.width - grid * 3,
-  y: canvas.height / 2 + paddleHeight,
-  width: grid,
-  height: paddleHeight,
+// Helper function to draw paddle
+function drawPaddle(paddle) {
+  context.fillStyle = 'white';
+  context.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+}
 
-  // paddle velocity
-  dy: 0
-};
+// Helper function to handle paddle movement
+function movePaddle(paddle) {
+  paddle.y += paddle.dy;
+}
 
-const rightFrontPaddle0 = {
-  // start in the middle of the game on the right side
-  x: canvas.width - grid * 9 ,
-  y: canvas.height / 4 - paddleHeight / 2,
-  width: grid,
-  height: paddleHeight,
+// Create paddles using the helper function
+const leftPaddle = createPaddle(grid * 2, 0, grid, canvas.height);
+const rightFrontPaddle = createPaddle(canvas.width - grid * 9, canvas.height / 2 - paddleHeight * 2, grid, paddleHeight);
+const rightFrontPaddle2 = createPaddle(canvas.width - grid * 9, canvas.height / 2 + paddleHeight, grid, paddleHeight);
+const rightBackPaddle0 = createPaddle(canvas.width - grid * 3, canvas.height / 3 - paddleHeight / 2, grid, paddleHeight);
+const rightBackPaddle2 = createPaddle(canvas.width - grid * 3, canvas.height * 2/3 - paddleHeight / 2, grid, paddleHeight);
 
-  // paddle velocity
-  dy: 0
-};
-
-// const rightFrontPaddle = {
-//   // start in the middle of the game on the right side
-//   x: canvas.width - grid * 9 ,
-//   y: canvas.height / 2 - paddleHeight / 2,
-//   width: grid,
-//   height: paddleHeight,
-
-//   // paddle velocity
-//   dy: 0
-// };
-
-const rightFrontPaddle2 = {
-  // start in the middle of the game on the right side
-  x: canvas.width - grid * 9 ,
-  y: canvas.height * 3 / 4 - paddleHeight / 2,
-  width: grid,
-  height: paddleHeight,
-
-  // paddle velocity
-  dy: 0
-};
 const ball = {
-  // start in the middle of the game
   x: canvas.width / 2,
   y: canvas.height / 2,
   width: grid,
   height: grid,
-
-  // keep track of when need to reset the ball position
   resetting: false,
-
-  // ball velocity (start going to the top-right corner)
   dx: ballSpeed,
   dy: -ballSpeed
 };
@@ -123,56 +93,41 @@ function loop() {
   requestAnimationFrame(loop);
   context.clearRect(0,0,canvas.width,canvas.height);
 
-  // move paddles by their velocity
-  leftPaddle.y += leftPaddle.dy;
-  rightPaddle.y += rightPaddle.dy;
-  rightPaddle2.y += rightPaddle2.dy;
-  rightFrontPaddle0.y += rightFrontPaddle0.dy;
-  // rightFrontPaddle.y += rightFrontPaddle.dy;
-  rightFrontPaddle2.y += rightFrontPaddle2.dy;
+  // Move all paddles
+  [leftPaddle, rightFrontPaddle, rightFrontPaddle2, rightBackPaddle0, rightBackPaddle2].forEach(movePaddle);
 
-  // prevent paddles from going through walls
-  if (leftPaddle.y < grid) {
-    leftPaddle.y = grid;
-  }
-  else if (leftPaddle.y > maxPaddleY) {
-    leftPaddle.y = maxPaddleY;
-  }
+  // Check boundaries for left paddle
+  checkBoundaries(leftPaddle, grid, maxPaddleY);
 
-  if (rightPaddle.y < grid * 5) {
-    rightPaddle.y = grid * 5;
-    rightPaddle2.y = canvas.height / 2 - paddleHeight / 2;
-  }
-  else if (rightPaddle2.y  > canvas.height - grid * 6 - paddleHeight) {
-    rightPaddle2.y = canvas.height - grid * 6 - paddleHeight;
-    rightPaddle.y = canvas.height / 2 - paddleHeight / 2;
+  // Check boundaries for right paddles
+  if (rightFrontPaddle.y < grid * 7) {
+    rightFrontPaddle.y = grid * 7;
+    rightFrontPaddle2.y = canvas.height / 2 - paddleHeight / 2;
+  } else if (rightFrontPaddle2.y > canvas.height - grid * 8 - paddleHeight) {
+    rightFrontPaddle2.y = canvas.height - grid * 8 - paddleHeight;
+    rightFrontPaddle.y = canvas.height / 2 - paddleHeight / 2;
   }
 
-  if (rightFrontPaddle0.y < grid) {
-    rightFrontPaddle0.y = grid;
-    // rightFrontPaddle.y = canvas.height / 2 - paddleHeight *2.4;
-    rightFrontPaddle2.y = canvas.height  / 2 ;
+  if (rightBackPaddle0.y < grid) {
+    rightBackPaddle0.y = grid;
+  } else if (rightBackPaddle0.y > canvas.height / 2 - paddleHeight - grid) {
+    rightBackPaddle0.y = canvas.height / 2 - paddleHeight - grid;
   }
-  else if (rightFrontPaddle2.y > maxPaddleY) {
-    rightFrontPaddle0.y = canvas.height  / 2 - paddleHeight ;
-    // rightFrontPaddle.y = canvas.height / 2 + paddleHeight*1.2;
+
+  if (rightBackPaddle2.y < canvas.height / 2 + grid) {
+    rightBackPaddle2.y = canvas.height / 2 + grid;
+  } else if (rightBackPaddle2.y > canvas.height - paddleHeight - grid) {
+    rightBackPaddle2.y = canvas.height - paddleHeight - grid;
+  }
+
+  if (rightFrontPaddle2.y < grid) {
+    rightFrontPaddle2.y = grid;
+  } else if (rightFrontPaddle2.y > maxPaddleY) {
     rightFrontPaddle2.y = maxPaddleY;
   }
-  if (rightPaddle2.y < grid) {
-    rightPaddle2.y = grid;
-  }
-  else if (rightPaddle2.y > maxPaddleY) {
-    rightPaddle2.y = maxPaddleY;
-  }
 
-  // draw paddles
-  context.fillStyle = 'white';
-  context.fillRect(leftPaddle.x, leftPaddle.y, leftPaddle.width, leftPaddle.height);
-  context.fillRect(rightPaddle.x, rightPaddle.y, rightPaddle.width, rightPaddle.height);
-  context.fillRect(rightPaddle2.x, rightPaddle2.y, rightPaddle2.width, rightPaddle2.height);
-  context.fillRect(rightFrontPaddle0.x, rightFrontPaddle0.y, rightFrontPaddle0.width, rightFrontPaddle0.height);
-  // context.fillRect(rightFrontPaddle.x, rightFrontPaddle.y, rightFrontPaddle.width, rightFrontPaddle.height);
-  context.fillRect(rightFrontPaddle2.x, rightFrontPaddle2.y, rightFrontPaddle2.width, rightFrontPaddle2.height);
+  // Draw all paddles
+  [leftPaddle, rightFrontPaddle, rightFrontPaddle2, rightBackPaddle0, rightBackPaddle2].forEach(drawPaddle);
 
   // move ball by its velocity
   ball.x += ball.dx;
@@ -203,45 +158,23 @@ function loop() {
   // check to see if ball collides with paddle. if they do change x velocity
   if (collides(ball, leftPaddle)) {
     ball.dx *= -1;
-
-    // move ball next to the paddle otherwise the collision will happen again
-    // in the next frame
     ball.x = leftPaddle.x + leftPaddle.width;
   }
-  else if (collides(ball, rightPaddle)) {
+  else if (collides(ball, rightFrontPaddle)) {
     ball.dx *= -1;
-
-    // move ball next to the paddle otherwise the collision will happen again
-    // in the next frame
-    ball.x = rightPaddle.x - ball.width;
+    ball.x = rightFrontPaddle.x - ball.width;
   }
-  else if (collides(ball, rightPaddle2)) {
-    ball.dx *= -1;
-
-    // move ball next to the paddle otherwise the collision will happen again
-    // in the next frame
-    ball.x = rightPaddle2.x - ball.width;
-  }
-  else if (collides(ball, rightFrontPaddle0)) {
-    ball.dx *= -1;
-
-    // move ball next to the paddle otherwise the collision will happen again
-    // in the next frame
-    ball.x = rightFrontPaddle0.x - ball.width;
-  }
-  // else if (collides(ball, rightFrontPaddle)) {
-  //   ball.dx *= -1;
-
-  //   // move ball next to the paddle otherwise the collision will happen again
-  //   // in the next frame
-  //   ball.x = rightFrontPaddle.x - ball.width;
-  // }
   else if (collides(ball, rightFrontPaddle2)) {
     ball.dx *= -1;
-
-    // move ball next to the paddle otherwise the collision will happen again
-    // in the next frame
     ball.x = rightFrontPaddle2.x - ball.width;
+  }
+  else if (collides(ball, rightBackPaddle0)) {
+    ball.dx *= -1;
+    ball.x = rightBackPaddle0.x - ball.width;
+  }
+  else if (collides(ball, rightBackPaddle2)) {
+    ball.dx *= -1;
+    ball.x = rightBackPaddle2.x - ball.width;
   }
 
   // draw ball
@@ -260,72 +193,86 @@ function loop() {
   // draw line on the paddle way
   for (let i = grid; i < canvas.height - grid; i += grid ) {
     context.fillRect(canvas.width - grid * 3 + grid / 2, i, grid/12, grid);
-    if(i== grid * 5 || i== canvas.height - grid * 6) {
-      context.fillRect(canvas.width - grid * 3.5 , i, grid * 2, grid/3);
-    }
+    
   }
 
   // draw line on the paddle way front
   for (let i = grid; i < canvas.height - grid; i += grid ) {
     context.fillRect(canvas.width - grid * 9 + grid / 2, i, grid/12, grid);
+    if(i== grid * 7 || i== canvas.height - grid * 8) {
+      context.fillRect(canvas.width - grid * 9  - grid/2 , i, grid * 2, grid/3);
+    }
   }
 }
 
-// listen to keyboard events to move the paddles
-document.addEventListener('keydown', function(e) {
+// Helper function to handle key events
+function handleKeyDown(e) {
+  const keyActions = {
+    38: () => { // up arrow
+      rightBackPaddle0.dy = -paddleSpeed;
+      rightBackPaddle2.dy = -paddleSpeed;
+    },
+    40: () => { // down arrow
+      rightBackPaddle0.dy = paddleSpeed;
+      rightBackPaddle2.dy = paddleSpeed;
+    },
+    73: () => { // i key
+      rightFrontPaddle.dy = -paddleSpeed;
+      rightFrontPaddle2.dy = -paddleSpeed;
+    },
+    75: () => { // k key
+      rightFrontPaddle.dy = paddleSpeed;
+      rightFrontPaddle2.dy = paddleSpeed;
+    },
+    87: () => { // w key
+      leftPaddle.dy = -paddleSpeed;
+    },
+    83: () => { // s key
+      leftPaddle.dy = paddleSpeed;
+    }
+  };
 
-  // up arrow key
-  if (e.which === 38) {
-    rightPaddle.dy = -paddleSpeed;
-    rightPaddle2.dy = -paddleSpeed;
+  if (keyActions[e.which]) {
+    keyActions[e.which]();
   }
-  // down arrow key
-  else if (e.which === 40) {
-    rightPaddle.dy = paddleSpeed;
-    rightPaddle2.dy = paddleSpeed;
-  }
+}
 
-  // i key
-  if (e.which === 73) {
-    rightFrontPaddle0.dy = -paddleSpeed;
-    // rightFrontPaddle.dy = -paddleSpeed;
-    rightFrontPaddle2.dy = -paddleSpeed;
-  }
-  //k key
-  else if (e.which === 75) {
-    rightFrontPaddle0.dy = paddleSpeed;
-    // rightFrontPaddle.dy = paddleSpeed;
-    rightFrontPaddle2.dy = paddleSpeed;
-  }
-  // w key
-  if (e.which === 87) {
-    leftPaddle.dy = -paddleSpeed;
-  }
-  // a key
-  else if (e.which === 83) {
-    leftPaddle.dy = paddleSpeed;
-  }
-});
+function handleKeyUp(e) {
+  const keyActions = {
+    38: () => { // up arrow
+      rightBackPaddle0.dy = 0;
+      rightBackPaddle2.dy = 0;
+    },
+    40: () => { // down arrow
+      rightBackPaddle0.dy = 0;
+      rightBackPaddle2.dy = 0;
+    },
+    73: () => { // i key
+      rightFrontPaddle.dy = 0;
+      rightFrontPaddle2.dy = 0;
+    },
+    75: () => { // k key
+      rightFrontPaddle.dy = 0;
+      rightFrontPaddle2.dy = 0;
+    },
+    87: () => { // w key
+      leftPaddle.dy = 0;
+    },
+    83: () => { // s key
+      leftPaddle.dy = 0;
+    }
+  };
 
-// listen to keyboard events to stop the paddle if key is released
-document.addEventListener('keyup', function(e) {
-  if (e.which === 38 || e.which === 40) {
-    rightPaddle.dy = 0;
-    rightPaddle2.dy = 0;
+  if (keyActions[e.which]) {
+    keyActions[e.which]();
   }
+}
 
-  if (e.which === 73 || e.which === 75) {
-    rightFrontPaddle0.dy = 0;
-    // rightFrontPaddle.dy = 0;
-    rightFrontPaddle2.dy = 0;
-  }
+// Event listeners
+document.addEventListener('keydown', handleKeyDown);
+document.addEventListener('keyup', handleKeyUp);
 
-  if (e.which === 83 || e.which === 87) {
-    leftPaddle.dy = 0;
-  }
-});
-
-// start the game
+// Start the game
 requestAnimationFrame(loop);
 </script>
 </body>
