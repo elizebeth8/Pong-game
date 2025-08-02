@@ -14,11 +14,85 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+  }
+
+  .score-container {
+    display: flex;
+    justify-content: space-between;
+    width: 750px;
+    margin-bottom: 10px;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+  }
+
+  .player-score {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .score {
+    font-weight: bold;
+  }
+
+  #startButton {
+    position: absolute;
+    padding: 20px 40px;
+    font-size: 24px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+  }
+
+  #startButton:hover {
+    background-color: #45a049;
+  }
+
+  #pauseButton {
+    margin-bottom: 20px;
+    padding: 10px 20px;
+    font-size: 18px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    display: none;
+  }
+
+  #pauseButton:hover {
+    background-color: #da190b;
+  }
+
+  #pauseButton.paused {
+    background-color: #4CAF50;
+  }
+
+  #pauseButton.paused:hover {
+    background-color: #45a049;
   }
   </style>
 </head>
 <body>
+<div class="score-container">
+  <div class="player-score">
+    <span>Player1 |</span>
+    <span class="score" id="player1Score">0</span>
+  </div>
+  <div class="player-score">
+    <span> Not Player1 |</span>
+    <span class="score" id="player2Score">0</span>
+  </div>
+</div>
+<button id="pauseButton">Pause</button>
 <canvas width="750" height="585" id="game"></canvas>
+<button id="startButton">Start Game</button>
 <script>
 const canvas = document.getElementById('game');
 const context = canvas.getContext('2d');
@@ -28,8 +102,18 @@ const maxPaddleY = canvas.height - grid - paddleHeight;
 const maxRightBackY = paddleHeight;
 const maxRightBackY2 = canvas.height - paddleHeight;
 
-var paddleSpeed = 6;
+var paddleSpeed = 7;
 var ballSpeed = 3;
+
+const startButton = document.getElementById('startButton');
+const pauseButton = document.getElementById('pauseButton');
+let gameStarted = false;
+let gamePaused = false;
+
+const player1ScoreElement = document.getElementById('player1Score');
+const player2ScoreElement = document.getElementById('player2Score');
+let player1Score = 0;
+let player2Score = 0;
 
 // Helper function to create paddle objects
 function createPaddle(x, y, width, height) {
@@ -63,7 +147,11 @@ function movePaddle(paddle) {
 }
 
 // Create paddles using the helper function
-const leftPaddle = createPaddle(grid * 2, 0, grid, canvas.height);
+const leftFrontPaddle = createPaddle(grid * 8, canvas.height / 2 - paddleHeight * 2, grid, paddleHeight);
+const leftFrontPaddle2 = createPaddle(grid * 8, canvas.height / 2 + paddleHeight, grid, paddleHeight);
+const leftBackPaddle0 = createPaddle(grid * 2, canvas.height / 3 - paddleHeight / 2, grid, paddleHeight);
+const leftBackPaddle2 = createPaddle(grid * 2, canvas.height * 2/3 - paddleHeight / 2, grid, paddleHeight);
+
 const rightFrontPaddle = createPaddle(canvas.width - grid * 9, canvas.height / 2 - paddleHeight * 2, grid, paddleHeight);
 const rightFrontPaddle2 = createPaddle(canvas.width - grid * 9, canvas.height / 2 + paddleHeight, grid, paddleHeight);
 const rightBackPaddle0 = createPaddle(canvas.width - grid * 3, canvas.height / 3 - paddleHeight / 2, grid, paddleHeight);
@@ -90,44 +178,64 @@ function collides(obj1, obj2) {
 
 // game loop
 function loop() {
+  if (!gameStarted || gamePaused) return;
+  
   requestAnimationFrame(loop);
   context.clearRect(0,0,canvas.width,canvas.height);
 
   // Move all paddles
-  [leftPaddle, rightFrontPaddle, rightFrontPaddle2, rightBackPaddle0, rightBackPaddle2].forEach(movePaddle);
+  [leftFrontPaddle, leftFrontPaddle2, leftBackPaddle0, leftBackPaddle2, 
+   rightFrontPaddle, rightFrontPaddle2, rightBackPaddle0, rightBackPaddle2].forEach(movePaddle);
 
-  // Check boundaries for left paddle
-  checkBoundaries(leftPaddle, grid, maxPaddleY);
+  // Check boundaries for left paddles
+  if (leftFrontPaddle.y < grid * 7) {
+    leftFrontPaddle.y = grid * 7;
+    leftFrontPaddle2.y = canvas.height / 2 - grid/2;
+  } else if (leftFrontPaddle2.y > canvas.height - grid * 8 - paddleHeight) {
+    leftFrontPaddle2.y = canvas.height - grid * 8 - paddleHeight;
+    leftFrontPaddle.y = canvas.height / 2  - grid*4.5;
+  }
+
+  if (leftBackPaddle0.y < grid) {
+    leftBackPaddle0.y = grid;
+    leftBackPaddle2.y = canvas.height/2 - grid*5.5;
+  } else if (leftBackPaddle2.y > canvas.height- paddleHeight - grid) {
+    leftBackPaddle2.y = canvas.height- paddleHeight - grid;
+    leftBackPaddle0.y = canvas.height/2 + grid*1.5;
+  }
+
+  // if (leftBackPaddle2.y < canvas.height / 2 + grid) {
+  //   leftBackPaddle2.y = canvas.height / 2 + grid;
+  // } else if (leftBackPaddle2.y > canvas.height - paddleHeight - grid) {
+  //   leftBackPaddle2.y = canvas.height - paddleHeight - grid;
+  // }
 
   // Check boundaries for right paddles
   if (rightFrontPaddle.y < grid * 7) {
     rightFrontPaddle.y = grid * 7;
-    rightFrontPaddle2.y = canvas.height / 2 - paddleHeight / 2;
+    rightFrontPaddle2.y = canvas.height / 2 -grid/2;
   } else if (rightFrontPaddle2.y > canvas.height - grid * 8 - paddleHeight) {
     rightFrontPaddle2.y = canvas.height - grid * 8 - paddleHeight;
-    rightFrontPaddle.y = canvas.height / 2 - paddleHeight / 2;
+    rightFrontPaddle.y = canvas.height / 2 - grid*4.5;
   }
 
   if (rightBackPaddle0.y < grid) {
     rightBackPaddle0.y = grid;
-  } else if (rightBackPaddle0.y > canvas.height / 2 - paddleHeight - grid) {
-    rightBackPaddle0.y = canvas.height / 2 - paddleHeight - grid;
+    rightBackPaddle2.y = canvas.height/2 - grid*5.5;
+  } else if (rightBackPaddle2.y > canvas.height- paddleHeight - grid) {
+    rightBackPaddle2.y = canvas.height- paddleHeight - grid;
+    rightBackPaddle0.y = canvas.height/2 + grid*1.5;
   }
 
-  if (rightBackPaddle2.y < canvas.height / 2 + grid) {
-    rightBackPaddle2.y = canvas.height / 2 + grid;
-  } else if (rightBackPaddle2.y > canvas.height - paddleHeight - grid) {
-    rightBackPaddle2.y = canvas.height - paddleHeight - grid;
-  }
-
-  if (rightFrontPaddle2.y < grid) {
-    rightFrontPaddle2.y = grid;
-  } else if (rightFrontPaddle2.y > maxPaddleY) {
-    rightFrontPaddle2.y = maxPaddleY;
-  }
+  // if (rightBackPaddle2.y < canvas.height / 2 + grid) {
+  //   rightBackPaddle2.y = canvas.height / 2 + grid;
+  // } else if (rightBackPaddle2.y > canvas.height - paddleHeight - grid) {
+  //   rightBackPaddle2.y = canvas.height - paddleHeight - grid;
+  // }
 
   // Draw all paddles
-  [leftPaddle, rightFrontPaddle, rightFrontPaddle2, rightBackPaddle0, rightBackPaddle2].forEach(drawPaddle);
+  [leftFrontPaddle, leftFrontPaddle2, leftBackPaddle0, leftBackPaddle2,
+   rightFrontPaddle, rightFrontPaddle2, rightBackPaddle0, rightBackPaddle2].forEach(drawPaddle);
 
   // move ball by its velocity
   ball.x += ball.dx;
@@ -144,27 +252,77 @@ function loop() {
   }
 
   // reset ball if it goes past paddle (but only if we haven't already done so)
-  if ( (ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
+  if ((ball.x < 0 || ball.x > canvas.width) && !ball.resetting) {
     ball.resetting = true;
+
+    // Update score
+    if (ball.x < 0) {
+      player2Score++;
+      player2ScoreElement.textContent = player2Score;
+    } else {
+      player1Score++;
+      player1ScoreElement.textContent = player1Score;
+    }
+
+    // Check for game over
+    if (player1Score >= 10 || player2Score >= 10) {
+      gameStarted = false;
+      gamePaused = true;
+      pauseButton.style.display = 'none';
+      startButton.style.display = 'block';
+      startButton.textContent = 'Play Again';
+      
+      // Display winner
+      context.fillStyle = 'white';
+      context.font = '48px Arial';
+      context.textAlign = 'center';
+      context.fillText(
+        `${player1Score >= 10 ? 'Player 1' : 'Player 2'} Wins!`,
+        canvas.width / 2,
+        canvas.height / 4
+      );
+      
+      // Reset scores
+      player1Score = 0;
+      player2Score = 0;
+      player1ScoreElement.textContent = '0';
+      player2ScoreElement.textContent = '0';
+      return;
+    }
 
     // give some time for the player to recover before launching the ball again
     setTimeout(() => {
       ball.resetting = false;
       ball.x = canvas.width / 2;
       ball.y = canvas.height / 2;
+      // Randomize initial direction
+      ball.dx = (Math.random() > 0.5 ? 1 : -1) * ballSpeed;
+      ball.dy = (Math.random() > 0.5 ? 1 : -1) * ballSpeed;
     }, 400);
   }
 
-  // check to see if ball collides with paddle. if they do change x velocity
-  if (collides(ball, leftPaddle)) {
+  // check to see if ball collides with paddle
+  if (collides(ball, leftFrontPaddle) && ball.dx < 0) {
     ball.dx *= -1;
-    ball.x = leftPaddle.x + leftPaddle.width;
+    ball.x = leftFrontPaddle.x + leftFrontPaddle.width;
   }
-  else if (collides(ball, rightFrontPaddle)) {
+  else if (collides(ball, leftFrontPaddle2) && ball.dx < 0) {
+    ball.dx *= -1;
+    ball.x = leftFrontPaddle2.x + leftFrontPaddle2.width;
+  }
+  else if (collides(ball, leftBackPaddle0)) {
+    ball.dx *= -1;
+    ball.x = leftBackPaddle0.x + leftBackPaddle0.width;
+  }
+  else if (collides(ball, leftBackPaddle2)) {
+    ball.dx *= -1;
+    ball.x = leftBackPaddle2.x + leftBackPaddle2.width;
+  }
+  else if (collides(ball, rightFrontPaddle) && ball.dx > 0) {
     ball.dx *= -1;
     ball.x = rightFrontPaddle.x - ball.width;
   }
-  else if (collides(ball, rightFrontPaddle2)) {
+  else if (collides(ball, rightFrontPaddle2 )&& ball.dx > 0) {
     ball.dx *= -1;
     ball.x = rightFrontPaddle2.x - ball.width;
   }
@@ -190,10 +348,9 @@ function loop() {
     context.fillRect(canvas.width / 2 - grid / 2, i, grid, grid);
   }
 
-  // draw line on the paddle way
+  // draw line on the paddle way back
   for (let i = grid; i < canvas.height - grid; i += grid ) {
     context.fillRect(canvas.width - grid * 3 + grid / 2, i, grid/12, grid);
-    
   }
 
   // draw line on the paddle way front
@@ -203,32 +360,55 @@ function loop() {
       context.fillRect(canvas.width - grid * 9  - grid/2 , i, grid * 2, grid/3);
     }
   }
+
+  // draw line on the left paddle way back
+  for (let i = grid; i < canvas.height - grid; i += grid ) {
+    context.fillRect(grid * 3 - grid / 2, i, grid/12, grid);
+  }
+
+  // draw line on the left paddle way front
+  for (let i = grid; i < canvas.height - grid; i += grid ) {
+    context.fillRect(grid * 9 - grid / 2, i, grid/12, grid);
+    if(i== grid * 7 || i== canvas.height - grid * 8) {
+      context.fillRect(grid * 7 + grid/2, i, grid * 2, grid/3);
+    }
+  }
 }
 
 // Helper function to handle key events
 function handleKeyDown(e) {
   const keyActions = {
-    38: () => { // up arrow
+    79: () => { // o key - right back paddles
       rightBackPaddle0.dy = -paddleSpeed;
       rightBackPaddle2.dy = -paddleSpeed;
     },
-    40: () => { // down arrow
+    76: () => { // l key - right back paddles
       rightBackPaddle0.dy = paddleSpeed;
       rightBackPaddle2.dy = paddleSpeed;
     },
-    73: () => { // i key
+    73: () => { // i key - right front paddles
       rightFrontPaddle.dy = -paddleSpeed;
       rightFrontPaddle2.dy = -paddleSpeed;
     },
-    75: () => { // k key
+    75: () => { // k key - right front paddles
       rightFrontPaddle.dy = paddleSpeed;
       rightFrontPaddle2.dy = paddleSpeed;
     },
-    87: () => { // w key
-      leftPaddle.dy = -paddleSpeed;
+    81: () => { // q key - left back paddles
+      leftBackPaddle0.dy = -paddleSpeed;
+      leftBackPaddle2.dy = -paddleSpeed;
     },
-    83: () => { // s key
-      leftPaddle.dy = paddleSpeed;
+    65: () => { // a key - left back paddles
+      leftBackPaddle0.dy = paddleSpeed;
+      leftBackPaddle2.dy = paddleSpeed;
+    },
+    87: () => { // w key - left front paddles
+      leftFrontPaddle.dy = -paddleSpeed;
+      leftFrontPaddle2.dy = -paddleSpeed;
+    },
+    83: () => { // s key - left front paddles
+      leftFrontPaddle.dy = paddleSpeed;
+      leftFrontPaddle2.dy = paddleSpeed;
     }
   };
 
@@ -239,27 +419,37 @@ function handleKeyDown(e) {
 
 function handleKeyUp(e) {
   const keyActions = {
-    38: () => { // up arrow
+    79: () => { // o key - right back paddles
       rightBackPaddle0.dy = 0;
       rightBackPaddle2.dy = 0;
     },
-    40: () => { // down arrow
+    76: () => { // l key - right back paddles
       rightBackPaddle0.dy = 0;
       rightBackPaddle2.dy = 0;
     },
-    73: () => { // i key
+    73: () => { // i key - right front paddles
       rightFrontPaddle.dy = 0;
       rightFrontPaddle2.dy = 0;
     },
-    75: () => { // k key
+    75: () => { // k key - right front paddles
       rightFrontPaddle.dy = 0;
       rightFrontPaddle2.dy = 0;
     },
-    87: () => { // w key
-      leftPaddle.dy = 0;
+    81: () => { // q key - left back paddles
+      leftBackPaddle0.dy = 0;
+      leftBackPaddle2.dy = 0;
     },
-    83: () => { // s key
-      leftPaddle.dy = 0;
+    65: () => { // a key - left back paddles
+      leftBackPaddle0.dy = 0;
+      leftBackPaddle2.dy = 0;
+    },
+    87: () => { // w key - left front paddles
+      leftFrontPaddle.dy = 0;
+      leftFrontPaddle2.dy = 0;
+    },
+    83: () => { // s key - left front paddles
+      leftFrontPaddle.dy = 0;
+      leftFrontPaddle2.dy = 0;
     }
   };
 
@@ -268,12 +458,97 @@ function handleKeyUp(e) {
   }
 }
 
+// Start button click handler
+startButton.addEventListener('click', function() {
+  gameStarted = true;
+  gamePaused = false;
+  
+  // Reset ball position and direction
+  ball.x = canvas.width / 2;
+  ball.y = canvas.height / 2;
+  ball.dx = (Math.random() > 0.5 ? 1 : -1) * ballSpeed;
+  ball.dy = (Math.random() > 0.5 ? 1 : -1) * ballSpeed;
+  ball.resetting = false;
+  
+  // Reset paddle positions
+  leftFrontPaddle.y = canvas.height / 2 - paddleHeight * 2;
+  leftFrontPaddle2.y = canvas.height / 2 + paddleHeight;
+  leftBackPaddle0.y = canvas.height / 3 - paddleHeight / 2;
+  leftBackPaddle2.y = canvas.height * 2/3 - paddleHeight / 2;
+  
+  rightFrontPaddle.y = canvas.height / 2 - paddleHeight * 2;
+  rightFrontPaddle2.y = canvas.height / 2 + paddleHeight;
+  rightBackPaddle0.y = canvas.height / 3 - paddleHeight / 2;
+  rightBackPaddle2.y = canvas.height * 2/3 - paddleHeight / 2;
+  
+  // Reset scores
+  player1Score = 0;
+  player2Score = 0;
+  player1ScoreElement.textContent = '0';
+  player2ScoreElement.textContent = '0';
+  
+  startButton.style.display = 'none';
+  pauseButton.style.display = 'block';
+  pauseButton.textContent = 'Pause';
+  pauseButton.classList.remove('paused');
+  
+  loop();
+  requestAnimationFrame(loop);
+});
+
+// Pause button click handler
+pauseButton.addEventListener('click', function() {
+  gamePaused = !gamePaused;
+  if (gamePaused) {
+    pauseButton.textContent = 'Resume';
+    pauseButton.classList.add('paused');
+  } else {
+    pauseButton.textContent = 'Pause';
+    pauseButton.classList.remove('paused');
+    requestAnimationFrame(loop);
+  }
+});
+
 // Event listeners
 document.addEventListener('keydown', handleKeyDown);
 document.addEventListener('keyup', handleKeyUp);
 
-// Start the game
-requestAnimationFrame(loop);
+// Initial draw of the game board
+function drawInitialBoard() {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Draw walls
+  context.fillStyle = 'lightgrey';
+  context.fillRect(0, 0, canvas.width, grid);
+  context.fillRect(0, canvas.height - grid, canvas.width, canvas.height);
+
+  // Draw dotted line down the middle
+  for (let i = grid; i < canvas.height - grid; i += grid * 2) {
+    context.fillRect(canvas.width / 2 - grid / 2, i, grid, grid);
+  }
+
+  // Draw all paddle lines
+  for (let i = grid; i < canvas.height - grid; i += grid ) {
+    context.fillRect(canvas.width - grid * 3 + grid / 2, i, grid/12, grid);
+    context.fillRect(grid * 3 - grid / 2, i, grid/12, grid);
+  }
+
+  for (let i = grid; i < canvas.height - grid; i += grid ) {
+    context.fillRect(canvas.width - grid * 9 + grid / 2, i, grid/12, grid);
+    context.fillRect(grid * 9 - grid / 2, i, grid/12, grid);
+    if(i== grid * 7 || i== canvas.height - grid * 8) {
+      context.fillRect(canvas.width - grid * 9  - grid/2 , i, grid * 2, grid/3);
+      context.fillRect(grid * 7 + grid/2, i, grid * 2, grid/3);
+    }
+  }
+
+  // Draw all paddles
+  [leftFrontPaddle, leftFrontPaddle2, leftBackPaddle0, leftBackPaddle2,
+   rightFrontPaddle, rightFrontPaddle2, rightBackPaddle0, rightBackPaddle2].forEach(drawPaddle);
+}
+
+// Draw initial board
+drawInitialBoard();
 </script>
 </body>
 </html>
